@@ -27,7 +27,7 @@ public class Launcher {
         */
         boolean compression = false;
         long maxFileSize = 1024 * 1024;
-        String prefix = "LAP-";
+        String prefix = "LAP";
         int timeout = 10;
         boolean verbose = true;
 

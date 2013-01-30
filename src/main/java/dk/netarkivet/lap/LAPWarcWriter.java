@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.jwat.common.Base32;
+import org.jwat.common.Base64;
 import org.jwat.common.RandomAccessFileInputStream;
 import org.jwat.common.RandomAccessFileOutputStream;
 import org.jwat.common.Uri;
@@ -30,6 +31,7 @@ import org.jwat.warc.WarcRecord;
 import org.jwat.warc.WarcWriter;
 import org.jwat.warc.WarcWriterFactory;
 
+import dk.netarkivet.lap.Deduplication.SizeDigest;
 import fr.ina.dlweb.lap.writer.DefaultLapWriter;
 import fr.ina.dlweb.lap.writer.PersistenceListener;
 import fr.ina.dlweb.lap.writer.metadata.DefaultMetadata;
@@ -59,7 +61,9 @@ public class LAPWarcWriter extends DefaultLapWriter {
 
 	protected String hostname;
 
-    protected RandomAccessFile raf;
+	protected Deduplication deduplication;
+
+	protected RandomAccessFile raf;
 
 	protected RandomAccessFileOutputStream rafout;
 
@@ -107,6 +111,8 @@ public class LAPWarcWriter extends DefaultLapWriter {
         } else {
         	extension = ".warc";
         }
+
+        deduplication = new Deduplication();
 
         try {
         	nextWriter();
@@ -245,7 +251,7 @@ public class LAPWarcWriter extends DefaultLapWriter {
     @Override
 	public synchronized void onContent(DefaultMetadata metadata, InputStream data, String id,
 			Long size, PersistenceListener listener) throws Exception {
-        System.out.print(".");
+    	//System.out.print(".");
 
         if (size != null) {
             // content type
@@ -254,9 +260,6 @@ public class LAPWarcWriter extends DefaultLapWriter {
             if (contentTypes != null) {
             	contentType = contentTypes.get(0);
             }
-
-            // uri
-            String uri = metadata.getInfo("url") + "";
 
             // todo: add IP to the metadata (LAP)
             String ip = null;
@@ -268,31 +271,37 @@ public class LAPWarcWriter extends DefaultLapWriter {
             byte[] responseHeaderBytes = metadata.getResponseHeaders().getBytes();
             long fullResponseSize = responseHeaderBytes.length + size;
 
+            // uri
+            String uri = metadata.getInfo("url") + "";
+
             /*
              * Response digest.
              */
 
             InputStream contentStream;
 
-            MessageDigest blockDigest = null;
-            MessageDigest payloadDigest = null;
+            byte[] blockDigestBytes;
+            byte[] payloadDigestBytes;
+
+            MessageDigest blockDigestObj = null;
+            MessageDigest payloadDigestObj = null;
             try {
-                blockDigest = MessageDigest.getInstance("SHA1");
-                payloadDigest = MessageDigest.getInstance("SHA1");
+                blockDigestObj = MessageDigest.getInstance("SHA1");
+                payloadDigestObj = MessageDigest.getInstance("SHA1");
             } catch (NoSuchAlgorithmException e) {
                 e.printStackTrace();
             }
 
-            blockDigest.reset();
-            blockDigest.update(responseHeaderBytes);
-            payloadDigest.reset();
+            blockDigestObj.reset();
+            blockDigestObj.update(responseHeaderBytes);
+            payloadDigestObj.reset();
 
             int read;
             if (size <= (1024*1024)) {
             	out.reset();
             	while ((read = data.read(tmpBuf)) > 0) {
-            		blockDigest.update(tmpBuf, 0, read);
-            		payloadDigest.update(tmpBuf, 0, read);
+            		blockDigestObj.update(tmpBuf, 0, read);
+            		payloadDigestObj.update(tmpBuf, 0, read);
             		out.write(tmpBuf, 0, read);
             	}
             	out.close();
@@ -303,8 +312,8 @@ public class LAPWarcWriter extends DefaultLapWriter {
             	raf.seek(0L);
             	raf.setLength(0L);
             	while ((read = data.read(tmpBuf)) > 0) {
-            		blockDigest.update(tmpBuf, 0, read);
-            		payloadDigest.update(tmpBuf, 0, read);
+            		blockDigestObj.update(tmpBuf, 0, read);
+            		payloadDigestObj.update(tmpBuf, 0, read);
             		raf.write(tmpBuf, 0, read);
             	}
             	raf.seek(0L);
@@ -312,118 +321,137 @@ public class LAPWarcWriter extends DefaultLapWriter {
             }
         	data.close();
 
-            /*
-             * Response content.
-             */
+            blockDigestBytes = blockDigestObj.digest();
+            payloadDigestBytes = payloadDigestObj.digest();
 
-            ByteArrayInputStream headersStream = new ByteArrayInputStream(responseHeaderBytes);
-            SequenceInputStream fullResponseStream = new SequenceInputStream(headersStream, contentStream);
+            String dedupKey = Base64.encodeArray(payloadDigestBytes) + ":" + size + ":" + uri;
 
-            /*
-             * Response record.
-             */
-
-            if (raf.length() > maxFileSize) {
-            	nextWriter();
+            SizeDigest sizeDigest = null;
+            if (deduplication != null) {
+                sizeDigest = deduplication.lookup(dedupKey);
             }
 
-            //createRecord(writer, uri, contentType, ip, requestTimestamp, fullResponseSize, fullResponseStream);
+            if (sizeDigest == null || sizeDigest.urls.size() == 0) {
+        		System.out.println("Archiving: " + uri + " (" + dedupKey + ")");
 
-            WarcRecord record;
-            WarcHeader header;
-            byte[] digest;
-            WarcDigest warcBlockDigest;
-            WarcDigest warcPayloadDigest;
+        		/*
+                 * Response content.
+                 */
 
-            digest = blockDigest.digest();
-            warcBlockDigest = WarcDigest.createWarcDigest("SHA1", digest, "base32", Base32.encodeArray(digest));
-            digest = payloadDigest.digest();
-            warcPayloadDigest = WarcDigest.createWarcDigest("SHA1", digest, "base32", Base32.encodeArray(digest));
-
-            Uri responseRecordId = new Uri("urn:uuid:" + UUID.randomUUID());
-
-            record = WarcRecord.createRecord(writer);
-            header = record.header;
-            header.warcTypeIdx = WarcConstants.RT_IDX_RESPONSE;
-            header.warcDate = new Date(requestTimestamp);
-            //header.warcIpAddress = "1.2.3.4";
-            header.warcRecordIdUri = responseRecordId;
-            header.warcWarcinfoIdUri = warcinfoRecordId;
-            header.warcTargetUriStr = uri;
-            header.warcBlockDigest = warcBlockDigest;
-            header.warcPayloadDigest = warcPayloadDigest;
-            header.contentTypeStr = "application/http; msgtype=response";
-            header.contentLength = fullResponseSize;
-            writer.writeHeader(record);
-            writer.streamPayload(fullResponseStream);
-            writer.closeRecord();
-
-            /*
-             * Request.
-             */
-
-            String requestHeader = metadata.getRequestHeaders();
-            if (requestHeader != null) {
-            	/*
-            	 * Digest.
-            	 */
-
-            	byte[] requestHeaderBytes = requestHeader.getBytes("ISO-8859-1");
-
-            	blockDigest.reset();
-                blockDigest.update(requestHeaderBytes);
-
-                digest = blockDigest.digest();
-                warcBlockDigest = WarcDigest.createWarcDigest("SHA1", digest, "base32", Base32.encodeArray(digest));
+                ByteArrayInputStream headersStream = new ByteArrayInputStream(responseHeaderBytes);
+                SequenceInputStream fullResponseStream = new SequenceInputStream(headersStream, contentStream);
 
                 /*
-                 * Content.
+                 * Response record.
                  */
+
+                if (raf.length() > maxFileSize) {
+                	nextWriter();
+                }
+
+                //createRecord(writer, uri, contentType, ip, requestTimestamp, fullResponseSize, fullResponseStream);
+
+                WarcRecord record;
+                WarcHeader header;
+                WarcDigest warcBlockDigest;
+                WarcDigest warcPayloadDigest;
+
+                warcBlockDigest = WarcDigest.createWarcDigest("SHA1", blockDigestBytes, "base32", Base32.encodeArray(blockDigestBytes));
+                warcPayloadDigest = WarcDigest.createWarcDigest("SHA1", payloadDigestBytes, "base32", Base32.encodeArray(payloadDigestBytes));
+
+                Uri responseRecordId = new Uri("urn:uuid:" + UUID.randomUUID());
 
                 record = WarcRecord.createRecord(writer);
                 header = record.header;
-                header.warcTypeIdx = WarcConstants.RT_IDX_REQUEST;
+                header.warcTypeIdx = WarcConstants.RT_IDX_RESPONSE;
                 header.warcDate = new Date(requestTimestamp);
                 //header.warcIpAddress = "1.2.3.4";
-                header.warcRecordIdUri = new Uri("urn:uuid:" + UUID.randomUUID());
-                header.addHeader(WarcConstants.FN_WARC_CONCURRENT_TO, responseRecordId, null);
+                header.warcRecordIdUri = responseRecordId;
                 header.warcWarcinfoIdUri = warcinfoRecordId;
                 header.warcTargetUriStr = uri;
                 header.warcBlockDigest = warcBlockDigest;
-                header.contentTypeStr = "application/http; msgtype=request";
-                header.contentLength = new Long(requestHeaderBytes.length);
+                header.warcPayloadDigest = warcPayloadDigest;
+                header.contentTypeStr = "application/http; msgtype=response";
+                header.contentLength = fullResponseSize;
                 writer.writeHeader(record);
-                ByteArrayInputStream bin = new ByteArrayInputStream(requestHeaderBytes);
-                writer.streamPayload(bin);
+                writer.streamPayload(fullResponseStream);
                 writer.closeRecord();
-            }
 
-            /*
-             * debug
-             */
+                /*
+                 * Request.
+                 */
 
-            /*
-            System.out.println(metadata.getId());
-            System.out.println(metadata.getRequestHeaders());
-            System.out.println(metadata.getResponseHeaders());
-            Map<String, ?> map;
-            Iterator<?> iter;
-            Map.Entry entry;
-            map = metadata.getInfo();
-            iter = map.entrySet().iterator();
-            while (iter.hasNext()) {
-            	entry = (Map.Entry)iter.next();
-            	System.out.println(entry.getKey());
-            	System.out.println(entry.getValue());
+                String requestHeader = metadata.getRequestHeaders();
+                if (requestHeader != null) {
+                	/*
+                	 * Digest.
+                	 */
+
+                	byte[] requestHeaderBytes = requestHeader.getBytes("ISO-8859-1");
+
+                	blockDigestObj.reset();
+                    blockDigestObj.update(requestHeaderBytes);
+
+                    blockDigestBytes = blockDigestObj.digest();
+                    warcBlockDigest = WarcDigest.createWarcDigest("SHA1", blockDigestBytes, "base32", Base32.encodeArray(blockDigestBytes));
+
+                    /*
+                     * Content.
+                     */
+
+                    record = WarcRecord.createRecord(writer);
+                    header = record.header;
+                    header.warcTypeIdx = WarcConstants.RT_IDX_REQUEST;
+                    header.warcDate = new Date(requestTimestamp);
+                    //header.warcIpAddress = "1.2.3.4";
+                    header.warcRecordIdUri = new Uri("urn:uuid:" + UUID.randomUUID());
+                    header.addHeader(WarcConstants.FN_WARC_CONCURRENT_TO, responseRecordId, null);
+                    header.warcWarcinfoIdUri = warcinfoRecordId;
+                    header.warcTargetUriStr = uri;
+                    header.warcBlockDigest = warcBlockDigest;
+                    header.contentTypeStr = "application/http; msgtype=request";
+                    header.contentLength = new Long(requestHeaderBytes.length);
+                    writer.writeHeader(record);
+                    ByteArrayInputStream bin = new ByteArrayInputStream(requestHeaderBytes);
+                    writer.streamPayload(bin);
+                    writer.closeRecord();
+                }
+
+                /*
+                 * debug
+                 */
+
+                /*
+                System.out.println(metadata.getId());
+                System.out.println(metadata.getRequestHeaders());
+                System.out.println(metadata.getResponseHeaders());
+                Map<String, ?> map;
+                Iterator<?> iter;
+                Map.Entry entry;
+                map = metadata.getInfo();
+                iter = map.entrySet().iterator();
+                while (iter.hasNext()) {
+                	entry = (Map.Entry)iter.next();
+                	System.out.println(entry.getKey());
+                	System.out.println(entry.getValue());
+                }
+                map = metadata.getRequestInfo();
+                iter = map.entrySet().iterator();
+                while (iter.hasNext()) {
+                	entry = (Map.Entry)iter.next();
+                	System.out.println(entry.getKey());
+                	System.out.println(entry.getValue());
+                }
+                */
+
+                sizeDigest.urls.add(uri);
+                deduplication.persistSizeDigest(sizeDigest);
+            } else {
+            	if (sizeDigest.urls.contains(uri)) {
+            	}
+            	// "http://netpreserve.org/warc/1.0/revisit/uri-agnostic-identical-payload-digest". 
+            	System.out.println("Duplicate: " + uri + " (" + dedupKey + ")");
             }
-            map = metadata.getRequestInfo();
-            iter = map.entrySet().iterator();
-            while (iter.hasNext()) {
-            	entry = (Map.Entry)iter.next();
-            	System.out.println(entry.getKey());
-            	System.out.println(entry.getValue());
-            }
-            */
         }
         listener.onDataPersisted(id);
 	}

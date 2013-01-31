@@ -19,11 +19,13 @@ import com.sleepycat.je.EnvironmentConfig;
 
 public class Deduplication {
 
-    protected ClassCatalog catalog;
+	protected Environment env;
 
-	protected Environment env = null;
+	protected Database catalogDb;
 
-	protected Database db = null;
+	protected ClassCatalog catalog;
+
+	protected Database db;
 
     protected SortedMap<String, SizeDigest> map;
 
@@ -35,13 +37,14 @@ public class Deduplication {
 
 		public String key;
 		public String recordId;
+		public String payloadDigest;
 		public Set<String> urls = new HashSet<String>();
 		public SizeDigest(String key) {
 			this.key = key;
 		}
     }
 
-	public Deduplication() {
+	public Deduplication(File envHome) {
 		EnvironmentConfig envConfig = new EnvironmentConfig();
 		envConfig.setTransactional(false);
 		envConfig.setLocking(false);
@@ -55,15 +58,13 @@ public class Deduplication {
 
 		System.out.println(envConfig.getCachePercent());
 
-		String dir = ".";
-
-		env = new Environment(new File(dir), envConfig);
+		env = new Environment(envHome, envConfig);
 
 		DatabaseConfig dbConfig = new DatabaseConfig();
 		dbConfig.setTransactional(false);
 		dbConfig.setAllowCreate(true);
 
-		Database catalogDb = env.openDatabase(null, "deduplication_cdb", dbConfig);
+		catalogDb = env.openDatabase(null, "deduplication_cdb", dbConfig);
 		catalog = new StoredClassCatalog(catalogDb);
 
 		TupleBinding<String> keyBinding = TupleBinding.getPrimitiveBinding(String.class);
@@ -94,6 +95,10 @@ public class Deduplication {
 	}
 
 	public void close() {
+		if (catalogDb != null) {
+			catalogDb.close();
+			catalogDb = null;
+		}
 		if (db != null) {
 			db.close();
 			db = null;

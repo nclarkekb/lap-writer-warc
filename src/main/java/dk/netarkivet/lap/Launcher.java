@@ -26,10 +26,15 @@ public class Launcher {
         String prefix = ArcWriter.DEFAULT_PREFIX;
         */
         boolean compression = false;
-        long maxFileSize = 1024 * 1024;
+        long maxFileSize = 1024 * 1024 * 1024;
         String prefix = "LAP";
         int timeout = 10;
-        boolean verbose = true;
+        boolean deduplication = true;
+        String isPartOf = "";
+        String description = "";
+        String operator = "";
+        String httpheader = "";
+        boolean verbose = false;
 
         for (int i=1; i<args.length; i++) {
             String[] arg = args[i].split("=", 2);
@@ -37,10 +42,15 @@ public class Launcher {
             String val = arg.length < 2 ? null : arg[1];
 
             if ("--dir".equals(key)) dir = val;
+            if ("--prefix".equals(key)) prefix = val;
             if ("--compression".equals(key)) compression = Boolean.parseBoolean(val);
             if ("--max-file-size".equals(key)) maxFileSize = Long.parseLong(val);
-            if ("--prefix".equals(key)) prefix = val;
             if ("--timeout".equals(key)) timeout = Integer.parseInt(val);
+            if ("--deduplication".equals(key)) deduplication = Boolean.parseBoolean(val);
+            if ("--ispartof".equals(key)) isPartOf = val;
+            if ("--description".equals(key)) description = val;
+            if ("--operator".equals(key)) operator = val;
+            if ("--httpheader".equals(key)) httpheader = val;
             if ("--verbose".equals(key)) verbose = true;
         }
 
@@ -48,13 +58,18 @@ public class Launcher {
 
         if (verbose) {
             String msg =
-                    "LAP: '" + host + ":" + port + "', " +
-                    "dir: '" + dir + "', " +
-                    "compress: '" + compression + "', " +
-                    "max-file-size: '" + maxFileSize + "', " +
-                    "prefix: '" + prefix + "', " +
-                    "timeout: '" + timeout + "', " +
-                    "verbose: '" + verbose + "', " +
+                    "          LAP: '" + host + ":" + port + "'\r\n" +
+                    "          dir: '" + dir + "'\r\n" +
+                    "       prefix: '" + prefix + "'\r\n" +
+                    "     compress: '" + compression + "'\r\n" +
+                    "max-file-size: '" + maxFileSize + "'\r\n" +
+                    "      timeout: '" + timeout + "'\r\n" +
+                    "deduplication: '" + deduplication + "'\r\n" +
+                    "     ispartof: '" + isPartOf + "'\r\n" +
+                    "  description: '" + description + "'\r\n" +
+                    "     operator: '" + operator + "'\r\n" +
+                    "   httpheader: '" + httpheader + "'\r\n" +
+                    "      verbose: '" + verbose + "'\r\n" +
                     "";
             System.out.println(msg);
         }
@@ -66,20 +81,26 @@ public class Launcher {
         else
             aw = new WarcWriter(host, port, new File(dir), compression, maxFileSize, prefix);
         */
-        w = new LAPWarcWriter(host, port, new File(dir), compression, maxFileSize, prefix);
+        w = new LAPWarcWriter(host, port, new File(dir), prefix, compression, maxFileSize, deduplication, verbose,
+        		isPartOf, description, operator, httpheader);
         w.start(timeout);
     }
 
     private static void usage() {
         String usage =
-                "\nUsage:\n"
-                + "lap-writer-arc lap-host:lap-port"
-                + " --dir=arcFileTargetDirectory "
-                + "[--compress=true|false] "
-                + "[--max-file-size=maxArcFileSize] "
-                + "[--prefix=fileNamesPrefix] "
-                + "[--timeout=connectionTimeout] "
-                + "[--verbose] "
+                "\nUsage:\r\n"
+                + "lap-writer-arc lap-host:lap-port\r\n"
+                + "  --dir=warcFileTargetDirectory\r\n"
+                + "  [--prefix=fileNamesPrefix]\r\n"
+                + "  [--compress=true|false]\r\n"
+                + "  [--max-file-size=maxArcFileSize]\r\n"
+                + "  [--timeout=connectionTimeout]\r\n"
+                + "  [--deduplication=true|false]\r\n"
+                + "  [--ispartof=warcinfo ispartof]\r\n"
+                + "  [--description=warcinfo description]\r\n"
+                + "  [--operator=warcinfo operator]\r\n"
+                + "  [--httpheader=warcinfo httpheader]\r\n"
+                + "  [--verbose] "
                 ;
         System.out.println(usage);
         System.exit(1);

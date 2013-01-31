@@ -6,11 +6,11 @@ import org.apache.log4j.BasicConfigurator;
 
 public class Launcher {
 
-	public static void main(String[] args) throws Exception {
-		launch(args);
-	}
+    public static void main(String[] args) throws Exception {
+        launch(args);
+    }
 
-	public static void launch(String[] args) throws Exception {
+    public static void launch(String[] args) throws Exception {
         BasicConfigurator.configure();
         if (args.length < 2) usage();
 
@@ -82,7 +82,7 @@ public class Launcher {
             aw = new WarcWriter(host, port, new File(dir), compression, maxFileSize, prefix);
         */
         w = new LAPWarcWriter(host, port, new File(dir), prefix, compression, maxFileSize, deduplication, verbose,
-        		isPartOf, description, operator, httpheader);
+                isPartOf, description, operator, httpheader);
         w.start(timeout);
     }
 

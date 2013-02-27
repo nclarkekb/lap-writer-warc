@@ -22,6 +22,9 @@ import java.util.UUID;
 
 import org.jwat.common.Base32;
 import org.jwat.common.Base64;
+import org.jwat.common.ByteCountingPushBackInputStream;
+import org.jwat.common.HeaderLine;
+import org.jwat.common.HttpHeader;
 import org.jwat.common.RandomAccessFileInputStream;
 import org.jwat.common.RandomAccessFileOutputStream;
 import org.jwat.common.Uri;
@@ -343,21 +346,27 @@ public class LAPWarcWriter extends DefaultLapWriter {
         //System.out.print(".");
 
         if (size != null) {
+        	/*
             // content type
             String contentType = "application/binary";
             List<String> contentTypes = metadata.getResponseHeader("Content-Type");
             if (contentTypes != null) {
                 contentType = contentTypes.get(0);
             }
+            */
 
             // todo: add IP to the metadata (LAP)
-            String ip = null;
+            //String ip = null;
 
             // timestamp
             long requestTimestamp = Long.parseLong(metadata.getInfo("request_time") + "");
 
-            // content
-            byte[] responseHeaderBytes = metadata.getResponseHeaders().getBytes();
+            /*
+             * Filter HTTP Response headers + WARC Content-Length.
+             */
+
+            byte[] responseHeaderBytes = filter(metadata.getResponseHeaders().getBytes(), size);
+
             long fullResponseSize = responseHeaderBytes.length + size;
 
             // uri
@@ -585,6 +594,42 @@ public class LAPWarcWriter extends DefaultLapWriter {
             }
         }
         listener.onDataPersisted(id);
+    }
+
+    public static byte[] filter(byte[] responseHeaderBytes, long contentLength) throws IOException {
+    	HttpHeader httpHeader = HttpHeader.processPayload(HttpHeader.HT_RESPONSE,
+        		new ByteCountingPushBackInputStream(new ByteArrayInputStream(responseHeaderBytes), 8192),
+        		responseHeaderBytes.length,
+        		null);
+    	httpHeader.close();
+        if (httpHeader != null && httpHeader.isValid()) {
+        	List<HeaderLine> headerLines = httpHeader.getHeaderList();
+        	HeaderLine headerLine;
+
+        	ByteArrayOutputStream out = new ByteArrayOutputStream();
+        	out.write((httpHeader.httpVersion + " " + httpHeader.statusCodeStr + " " + httpHeader.reasonPhrase + "\r\n").getBytes());
+
+        	boolean bContentLengthPresent = false;
+        	for (int i=0; i<headerLines.size(); ++i) {
+        		headerLine = headerLines.get(i);
+        		if ("content-length".equalsIgnoreCase(headerLine.name)) {
+        			out.write((headerLine.name + ": " + Long.toString(contentLength) + "\r\n").getBytes());
+        			bContentLengthPresent = true;
+        		} else if ("content-encoding".equalsIgnoreCase(headerLine.name)) {
+        		} else if ("transfer-encoding".equalsIgnoreCase(headerLine.name)) {
+        		} else {
+        			out.write((headerLine.name + ": " + headerLine.value + "\r\n").getBytes());
+        		}
+        	}
+        	if (!bContentLengthPresent) {
+    			out.write(("Content-Length: " + Long.toString(contentLength) + "\r\n").getBytes());
+        	}
+
+        	out.write("\r\n".getBytes());
+
+        	responseHeaderBytes = out.toByteArray();
+        }
+        return responseHeaderBytes;
     }
 
 }

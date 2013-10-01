@@ -44,6 +44,7 @@ public class Launcher {
             if ("--dir".equals(key)) dir = val;
             if ("--prefix".equals(key)) prefix = val;
             if ("--compression".equals(key)) compression = Boolean.parseBoolean(val);
+            if ("--compress".equals(key)) compression = Boolean.parseBoolean(val);
             if ("--max-file-size".equals(key)) maxFileSize = Long.parseLong(val);
             if ("--timeout".equals(key)) timeout = Integer.parseInt(val);
             if ("--deduplication".equals(key)) deduplication = Boolean.parseBoolean(val);

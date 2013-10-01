@@ -2,8 +2,7 @@ package dk.netarkivet.lap;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Date;
 import java.util.SortedMap;
 
 import com.sleepycat.bind.serial.ClassCatalog;
@@ -30,15 +29,13 @@ public class Deduplication {
     protected SortedMap<String, SizeDigest> map;
 
     public static class SizeDigest implements Serializable {
-        /**
-         * UID.
-         */
-        private static final long serialVersionUID = -9015323801372972651L;
+        private static final long serialVersionUID = -3762328132086483200L;
 
         public String key;
         public String recordId;
         public String payloadDigest;
-        public Set<String> urls = new HashSet<String>();
+        public String originalUrl;
+        public Date originalDate;
         public SizeDigest(String key) {
             this.key = key;
         }

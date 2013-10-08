@@ -50,6 +50,8 @@ import fr.ina.dlweb.lap.writer.writerInfo.WriterInfoResponse;
  */
 public class LAPWarcWriter extends DefaultLapWriter {
 
+    protected static final String ACTIVE_SUFFIX = ".open";
+    
     /** Writer name and version. */
     protected String version = "LAP WARC writer v0.5";
 
@@ -88,6 +90,8 @@ public class LAPWarcWriter extends DefaultLapWriter {
     protected Uri warcinfoRecordId;
 
     protected boolean writerClosed = false;
+
+    protected File writerFile;
 
     public LAPWarcWriter(String lapHost, int lapPort, File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication, boolean bVerbose,
             String isPartOf, String description,  String operator, String httpheader) {
@@ -196,20 +200,37 @@ public class LAPWarcWriter extends DefaultLapWriter {
             writer_raf = null;
         }
         warcinfoRecordId = null;
+        
+        if (writerFile != null && writerFile.getName().endsWith(ACTIVE_SUFFIX)) {
+            String finishedName = writerFile.getName().substring(0, writerFile.getName().length() - ACTIVE_SUFFIX.length());
+            File finishedFile = new File(writerFile.getParent(), finishedName);
+            if (finishedFile.exists()) {
+                throw new IOException("unable to rename " + writerFile + " to " + finishedFile + " - destination file already exists");
+            }
+            boolean success = writerFile.renameTo(finishedFile);
+            if (!success) {
+                throw new IOException("unable to rename " + writerFile + " to " + finishedFile + " - unknown problem");
+            }
+            log.info("closed " + finishedFile);
+        }
+        writerFile = null;
     }
 
     protected void nextWriter() throws Exception {
         closeWriter();
 
-        String filename = filePrefix + "-" + date + "-" + String.format("%05d", sequenceNr++) + "-" + hostname + extension;
-        File file = new File(targetDir, filename);
-        if (file.exists()) {
-            if (!file.delete()) {
-                System.out.println("Could not delete old file!");
-            }
+        String finishedFilename = filePrefix + "-" + date + "-" + String.format("%05d", sequenceNr++) + "-" + hostname + extension;
+        String activeFilename = finishedFilename + ACTIVE_SUFFIX;
+        File finishedFile = new File(targetDir, finishedFilename);
+        writerFile = new File(targetDir, activeFilename);
+        if (writerFile.exists()) {
+            throw new IOException(writerFile + " already exists, will not overwrite");
+        }
+        if (finishedFile.exists()) {
+            throw new IOException(finishedFile + " already exists, will not overwrite");
         }
 
-        writer_raf = new RandomAccessFile(file, "rw");
+        writer_raf = new RandomAccessFile(writerFile, "rw");
         writer_raf.seek(0L);
         writer_raf.setLength(0L);
         writer_rafout = new RandomAccessFileOutputStream(writer_raf);
@@ -227,13 +248,15 @@ public class LAPWarcWriter extends DefaultLapWriter {
         header = record.header;
         header.warcTypeIdx = WarcConstants.RT_IDX_WARCINFO;
         header.warcDate = new Date();
-        header.warcFilename = filename;
+        header.warcFilename = finishedFilename;
         header.warcRecordIdUri = warcinfoRecordId;
         header.contentTypeStr = WarcConstants.CT_APP_WARC_FIELDS;
         header.contentLength = new Long(warcFieldsBytes.length);
         writer.writeHeader(record);
         writer.streamPayload(bin);
         writer.closeRecord();
+        
+        log.info("created new warc for writing: " + writerFile.getAbsolutePath());
     }
 
     protected void checkWritableDirs(List<File> dirs) {
@@ -298,8 +321,8 @@ public class LAPWarcWriter extends DefaultLapWriter {
 
     protected void stopWriter(boolean error) throws IOException {
         if (writer != null && !writerClosed) {
-            log.info("closed writer");
             closeWriter();
+            log.info("closed writer");
             if (deduplication != null) {
                 deduplication.close();
                 deduplication = null;

@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Stack;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.jwat.common.Base32;
 import org.jwat.common.Base64;
@@ -50,10 +51,12 @@ import fr.ina.dlweb.lap.writer.writerInfo.WriterInfoResponse;
  */
 public class LAPWarcWriter extends DefaultLapWriter {
 
+    private static final Logger log = Logger.getLogger(LAPWarcWriter.class.getName());
+
     protected static final String ACTIVE_SUFFIX = ".open";
     
     /** Writer name and version. */
-    protected String version = "LAP WARC writer v0.5";
+    protected static final String version = "LAP WARC writer v0.5";
 
     protected File targetDir;
 
@@ -414,7 +417,8 @@ public class LAPWarcWriter extends DefaultLapWriter {
         */
 
         // todo: add IP to the metadata (LAP)
-        //String ip = null;
+        String ip = new String(metadata.getInfo("request_ip") + "");
+        System.out.println(ip);
 
         // timestamp
         long requestTimestamp = Long.parseLong(metadata.getInfo("request_time") + "");

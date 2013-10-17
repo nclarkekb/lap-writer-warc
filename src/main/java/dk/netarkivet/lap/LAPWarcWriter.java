@@ -7,13 +7,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.io.SequenceInputStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -27,14 +24,11 @@ import org.jwat.common.ByteCountingPushBackInputStream;
 import org.jwat.common.HeaderLine;
 import org.jwat.common.HttpHeader;
 import org.jwat.common.RandomAccessFileInputStream;
-import org.jwat.common.RandomAccessFileOutputStream;
 import org.jwat.common.Uri;
 import org.jwat.warc.WarcConstants;
 import org.jwat.warc.WarcDigest;
 import org.jwat.warc.WarcHeader;
 import org.jwat.warc.WarcRecord;
-import org.jwat.warc.WarcWriter;
-import org.jwat.warc.WarcWriterFactory;
 
 import dk.netarkivet.lap.Deduplication.SizeDigest;
 import fr.ina.dlweb.lap.writer.DefaultLapWriter;
@@ -51,12 +45,12 @@ import fr.ina.dlweb.lap.writer.writerInfo.WriterInfoResponse;
  */
 public class LAPWarcWriter extends DefaultLapWriter {
 
-    private static final Logger log = Logger.getLogger(LAPWarcWriter.class.getName());
+    private static final Logger logger = Logger.getLogger(LAPWarcWriter.class.getName());
 
-    protected static final String ACTIVE_SUFFIX = ".open";
-    
     /** Writer name and version. */
     protected static final String version = "LAP WARC writer v0.5";
+
+    protected final String writerAgent;
 
     protected File targetDir;
 
@@ -70,31 +64,21 @@ public class LAPWarcWriter extends DefaultLapWriter {
 
     protected boolean bVerbose;
 
-    protected String date;
+    protected String isPartOf;
 
-    protected int sequenceNr;
+    protected String description;
 
-    protected String hostname;
+    protected String operator;
 
-    protected String extension;
-
-    protected String warcFields;
+    protected String httpheader;
 
     protected File tmpdir;
 
     protected Deduplication deduplication;
 
-    protected RandomAccessFile writer_raf;
-
-    protected RandomAccessFileOutputStream writer_rafout;
-
-    protected WarcWriter writer;
-
-    protected Uri warcinfoRecordId;
-
     protected boolean writerClosed = false;
 
-    protected File writerFile;
+    protected WarcWriterWrapper w3;
 
     public LAPWarcWriter(String lapHost, int lapPort, File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication, boolean bVerbose,
             String isPartOf, String description,  String operator, String httpheader) {
@@ -108,71 +92,21 @@ public class LAPWarcWriter extends DefaultLapWriter {
         this.bDeduplication = bDeduplication;
         this.bVerbose = bVerbose;
 
+        this.isPartOf = isPartOf;
+        this.description = description;
+        this.operator = operator;
+        this.httpheader = httpheader;
+
+        writerAgent = "Created by INA's Live Archiving Proxy Writer (" + getInfo().getWriterAgent() + ")";
+
         checkWritableDirs(targetDirs);
 
-        DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-        date = dateFormat.format(new Date());
-        sequenceNr = 0;
-        try {
-            hostname = InetAddress.getLocalHost().getHostName().toLowerCase();
-        } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
-        }
-        if (bCompression) {
-            extension = ".warc.gz";
-        } else {
-            extension = ".warc";
-        }
-
-        List<String> metadata = new ArrayList<String>();
-        metadata.add("Created by INA's Live Archiving Proxy Writer (" + getInfo().getWriterAgent() + ")");
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("software");
-        sb.append(": ");
-        sb.append(version);
-        sb.append("\r\n");
-        sb.append("host");
-        sb.append(": ");
-        sb.append(hostname);
-        sb.append("\r\n");
-        if (isPartOf != null && isPartOf.length() > 0) {
-            sb.append("isPartOf");
-            sb.append(": ");
-            sb.append(isPartOf);
-            sb.append("\r\n");
-        }
-        if (description != null && description.length() > 0) {
-            sb.append("description");
-            sb.append(": ");
-            sb.append(description);
-            sb.append("\r\n");
-        }
-        if (operator != null && operator.length() > 0) {
-            sb.append("operator");
-            sb.append(": ");
-            sb.append(operator);
-            sb.append("\r\n");
-        }
-        if (httpheader != null && httpheader.length() > 0) {
-            sb.append("httpheader");
-            sb.append(": ");
-            sb.append(httpheader);
-            sb.append("\r\n");
-        }
-        sb.append("format");
-        sb.append(": ");
-        sb.append("WARC file version 1.0");
-        sb.append("\r\n");
-        sb.append("conformsTo");
-        sb.append(": ");
-        sb.append("http://bibnum.bnf.fr/WARC/WARC_ISO_28500_version1_latestdraft.pdf");
-        sb.append("\r\n");
-        warcFields = sb.toString();
+        //List<String> metadata = new ArrayList<String>();
+        //metadata.add("Created by INA's Live Archiving Proxy Writer (" + getInfo().getWriterAgent() + ")");
 
         String sys_tmpdir = System.getProperty("java.io.tmpdir");
 
-        dateFormat = new SimpleDateFormat("yyyyMMddHHmmssSSS");
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmssSSS");
         String ts = dateFormat.format(new Date());
 
         tmpdir = new File(sys_tmpdir, "LAP-" + ts);
@@ -181,85 +115,6 @@ public class LAPWarcWriter extends DefaultLapWriter {
         if (bDeduplication) {
             deduplication = new Deduplication(tmpdir);
         }
-
-        try {
-            nextWriter();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    protected void closeWriter() throws IOException {
-        if (writer != null) {
-            writer.close();
-            writer = null;
-        }
-        if (writer_rafout != null) {
-            writer_rafout.close();
-            writer_rafout = null;
-        }
-        if (writer_raf != null) {
-            writer_raf.close();
-            writer_raf = null;
-        }
-        warcinfoRecordId = null;
-        
-        if (writerFile != null && writerFile.getName().endsWith(ACTIVE_SUFFIX)) {
-            String finishedName = writerFile.getName().substring(0, writerFile.getName().length() - ACTIVE_SUFFIX.length());
-            File finishedFile = new File(writerFile.getParent(), finishedName);
-            if (finishedFile.exists()) {
-                throw new IOException("unable to rename " + writerFile + " to " + finishedFile + " - destination file already exists");
-            }
-            boolean success = writerFile.renameTo(finishedFile);
-            if (!success) {
-                throw new IOException("unable to rename " + writerFile + " to " + finishedFile + " - unknown problem");
-            }
-            log.info("closed " + finishedFile);
-        }
-        writerFile = null;
-    }
-
-    protected void nextWriter() throws Exception {
-        closeWriter();
-
-        String finishedFilename = filePrefix + "-" + date + "-" + String.format("%05d", sequenceNr++) + "-" + hostname + extension;
-        String activeFilename = finishedFilename + ACTIVE_SUFFIX;
-        File finishedFile = new File(targetDir, finishedFilename);
-        writerFile = new File(targetDir, activeFilename);
-        if (writerFile.exists()) {
-            throw new IOException(writerFile + " already exists, will not overwrite");
-        }
-        if (finishedFile.exists()) {
-            throw new IOException(finishedFile + " already exists, will not overwrite");
-        }
-
-        writer_raf = new RandomAccessFile(writerFile, "rw");
-        writer_raf.seek(0L);
-        writer_raf.setLength(0L);
-        writer_rafout = new RandomAccessFileOutputStream(writer_raf);
-        writer = WarcWriterFactory.getWriter(writer_rafout, 8192, bCompression);
-
-        byte[] warcFieldsBytes = warcFields.getBytes("ISO-8859-1");
-        ByteArrayInputStream bin = new ByteArrayInputStream(warcFieldsBytes);
-
-        warcinfoRecordId = new Uri("urn:uuid:" + UUID.randomUUID());
-
-        WarcRecord record;
-        WarcHeader header;
-
-        record = WarcRecord.createRecord(writer);
-        header = record.header;
-        header.warcTypeIdx = WarcConstants.RT_IDX_WARCINFO;
-        header.warcDate = new Date();
-        header.warcFilename = finishedFilename;
-        header.warcRecordIdUri = warcinfoRecordId;
-        header.contentTypeStr = WarcConstants.CT_APP_WARC_FIELDS;
-        header.contentLength = new Long(warcFieldsBytes.length);
-        writer.writeHeader(record);
-        writer.streamPayload(bin);
-        writer.closeRecord();
-        
-        log.info("created new warc for writing: " + writerFile.getAbsolutePath());
     }
 
     protected void checkWritableDirs(List<File> dirs) {
@@ -309,7 +164,7 @@ public class LAPWarcWriter extends DefaultLapWriter {
             }
         });
 
-        log.info("started !");
+        logger.info("started !");
     }
 
     @Override
@@ -323,15 +178,15 @@ public class LAPWarcWriter extends DefaultLapWriter {
     }
 
     protected void stopWriter(boolean error) throws IOException {
-        if (writer != null && !writerClosed) {
-            closeWriter();
-            log.info("closed writer");
+        if (w3 != null && !writerClosed) {
+            w3.closeWriter();
+            logger.info("closed writer");
             if (deduplication != null) {
                 deduplication.close();
                 deduplication = null;
             }
             System.out.println("Bye...");
-            writer = null;
+            w3.writer = null;
             writerClosed = true;
         }
         if (tmpdir.exists()) {
@@ -371,8 +226,6 @@ public class LAPWarcWriter extends DefaultLapWriter {
     @Override
     public void onContent(DefaultMetadata metadata, InputStream data, String id,
             Long size, PersistenceListener listener) throws Exception {
-        //System.out.print(".");
-
         /*
          * debug
          */
@@ -400,11 +253,25 @@ public class LAPWarcWriter extends DefaultLapWriter {
         }
         */
 
+    	/*
+    	 * Handle empty payload.
+    	 */
         if (size == null) {
         	size = 0L;
         }
         if (data == null) {
         	data = new ByteArrayInputStream(zeroArr);
+        }
+        /*
+         * Timestamp.
+         */
+        long requestTimestamp = Long.parseLong(metadata.getInfo("request_time") + "");
+        /*
+         * Client IP.
+         */
+        String ip = new String(metadata.getInfo("request_ip") + "");
+        if (ip == null || ip.length() == 0) {
+        	ip = "0.0.0.0";
         }
 
     	/*
@@ -416,12 +283,9 @@ public class LAPWarcWriter extends DefaultLapWriter {
         }
         */
 
-        // todo: add IP to the metadata (LAP)
-        String ip = new String(metadata.getInfo("request_ip") + "");
-        System.out.println(ip);
-
-        // timestamp
-        long requestTimestamp = Long.parseLong(metadata.getInfo("request_time") + "");
+        if (w3 == null) {
+        	w3 = WarcWriterWrapper.getWarcWriterInstance(targetDir, filePrefix, bCompression, maxFileSize, writerAgent, isPartOf, description, operator, httpheader);
+        }
 
         /*
          * Filter HTTP Response headers + WARC Content-Length.
@@ -497,9 +361,7 @@ public class LAPWarcWriter extends DefaultLapWriter {
             sizeDigest = deduplication.lookup(dedupKey);
         }
 
-        if (writer_raf.length() > maxFileSize) {
-            nextWriter();
-        }
+        w3.nextWriter();
 
         Uri responseOrRevisitRecordId;
         if (sizeDigest == null || sizeDigest.originalUrl == null || size == 0) {
@@ -519,21 +381,21 @@ public class LAPWarcWriter extends DefaultLapWriter {
 
             responseOrRevisitRecordId = new Uri("urn:uuid:" + UUID.randomUUID());
 
-            record = WarcRecord.createRecord(writer);
+            record = WarcRecord.createRecord(w3.writer);
             header = record.header;
             header.warcTypeIdx = WarcConstants.RT_IDX_RESPONSE;
             header.warcDate = new Date(requestTimestamp);
             //header.warcIpAddress = "1.2.3.4";
             header.warcRecordIdUri = responseOrRevisitRecordId;
-            header.warcWarcinfoIdUri = warcinfoRecordId;
+            header.warcWarcinfoIdUri = w3.warcinfoRecordId;
             header.warcTargetUriStr = uri;
             header.warcBlockDigest = warcBlockDigest;
             header.warcPayloadDigest = warcPayloadDigest;
             header.contentTypeStr = "application/http; msgtype=response";
             header.contentLength = fullResponseSize;
-            writer.writeHeader(record);
-            writer.streamPayload(fullResponseStream);
-            writer.closeRecord();
+            w3.writer.writeHeader(record);
+            w3.writer.streamPayload(fullResponseStream);
+            w3.writer.closeRecord();
 
             if (sizeDigest != null) {
                 sizeDigest.recordId = responseOrRevisitRecordId.toString();
@@ -547,14 +409,14 @@ public class LAPWarcWriter extends DefaultLapWriter {
                 System.out.println("Archiving: " + dedupKey + ":" + uri);
             }
         } else {
-            record = WarcRecord.createRecord(writer);
+            record = WarcRecord.createRecord(w3.writer);
             header = record.header;
             header.warcTypeIdx = WarcConstants.RT_IDX_REVISIT;
             header.warcDate = new Date(requestTimestamp);
             //header.warcIpAddress = "1.2.3.4";
             responseOrRevisitRecordId = new Uri("urn:uuid:" + UUID.randomUUID());
             header.warcRecordIdUri = responseOrRevisitRecordId;
-            header.warcWarcinfoIdUri = warcinfoRecordId;
+            header.warcWarcinfoIdUri = w3.warcinfoRecordId;
             header.warcTargetUriStr = uri;
             header.warcRefersToUri = new Uri(sizeDigest.recordId);
             header.warcPayloadDigest = WarcDigest.parseWarcDigest(sizeDigest.payloadDigest);
@@ -563,9 +425,9 @@ public class LAPWarcWriter extends DefaultLapWriter {
             header.warcRefersToTargetUriStr = sizeDigest.originalUrl;
             header.warcRefersToDate = sizeDigest.originalDate;
 
-            writer.writeHeader(record);
-            writer.writePayload(responseHeaderBytes);
-            writer.closeRecord();
+            w3.writer.writeHeader(record);
+            w3.writer.writePayload(responseHeaderBytes);
+            w3.writer.closeRecord();
 
             if (bVerbose) {
                 System.out.println("Duplicate: " + dedupKey + ":" + uri);
@@ -594,22 +456,22 @@ public class LAPWarcWriter extends DefaultLapWriter {
              * Content.
              */
 
-            record = WarcRecord.createRecord(writer);
+            record = WarcRecord.createRecord(w3.writer);
             header = record.header;
             header.warcTypeIdx = WarcConstants.RT_IDX_REQUEST;
             header.warcDate = new Date(requestTimestamp);
             //header.warcIpAddress = "1.2.3.4";
             header.warcRecordIdUri = new Uri("urn:uuid:" + UUID.randomUUID());
             header.addHeader(WarcConstants.FN_WARC_CONCURRENT_TO, responseOrRevisitRecordId, null);
-            header.warcWarcinfoIdUri = warcinfoRecordId;
+            header.warcWarcinfoIdUri = w3.warcinfoRecordId;
             header.warcTargetUriStr = uri;
             header.warcBlockDigest = warcBlockDigest;
             header.contentTypeStr = "application/http; msgtype=request";
             header.contentLength = new Long(requestHeaderBytes.length);
-            writer.writeHeader(record);
+            w3.writer.writeHeader(record);
             ByteArrayInputStream bin = new ByteArrayInputStream(requestHeaderBytes);
-            writer.streamPayload(bin);
-            writer.closeRecord();
+            w3.writer.streamPayload(bin);
+            w3.writer.closeRecord();
         }
 
         if (tmpfile_raf != null) {

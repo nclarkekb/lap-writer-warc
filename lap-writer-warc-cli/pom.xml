@@ -48,6 +48,11 @@ LAP WARC Writer CLI
       <version>1.0.1-SNAPSHOT</version>
     </dependency>
     <dependency>
+      <groupId>com.antiaction</groupId>
+      <artifactId>common-json</artifactId>
+      <version>0.5.0</version>
+    </dependency>
+    <dependency>
       <groupId>com.sleepycat</groupId>
       <artifactId>je</artifactId>
       <version>5.0.58</version>

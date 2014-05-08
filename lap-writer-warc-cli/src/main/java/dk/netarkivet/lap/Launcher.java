@@ -1,6 +1,12 @@
 package dk.netarkivet.lap;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PushbackInputStream;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.log4j.BasicConfigurator;
 
@@ -26,7 +32,7 @@ public class Launcher {
         String prefix = ArcWriter.DEFAULT_PREFIX;
         */
         boolean compression = false;
-        long maxFileSize = 1024 * 1024 * 1024;
+        long maxFileSize = 1073741824L;
         String prefix = "LAP";
         int timeout = 10;
         boolean deduplication = true;
@@ -35,6 +41,7 @@ public class Launcher {
         String operator = "";
         String httpheader = "";
         boolean verbose = false;
+        String config = null;
 
         for (int i=1; i<args.length; i++) {
             String[] arg = args[i].split("=", 2);
@@ -53,11 +60,30 @@ public class Launcher {
             if ("--operator".equals(key)) operator = val;
             if ("--httpheader".equals(key)) httpheader = val;
             if ("--verbose".equals(key)) verbose = true;
+            if ("--config".equals(key)) config = val;
         }
 
-        if (dir == null) usage();
+        WriterConfig wc = null;
 
-        if (verbose) {
+        if (config != null) {
+        	try {
+            	File configFile = new File(config);
+            	if (configFile.exists() && configFile.isFile()) {
+                	FileInputStream fin = new FileInputStream(configFile);
+            		PushbackInputStream pbin = new PushbackInputStream(fin, 8192);
+                	wc = WriterConfig.getWriterConfig(pbin);
+            	}
+        	} catch (FileNotFoundException e) {
+        		System.out.println("File not found: " + config);
+        	}
+        	if (wc == null) {
+        		System.exit(1);
+        	}
+        }
+
+        if (wc == null && dir == null) usage();
+
+        if (wc == null && verbose) {
             String msg =
                     "          LAP: '" + host + ":" + port + "'\r\n" +
                     "          dir: '" + dir + "'\r\n" +
@@ -75,6 +101,19 @@ public class Launcher {
             System.out.println(msg);
         }
 
+        SessionManagerInterface sessionManager = null;
+
+        if (wc == null) {
+            File targetDir = new File(dir);
+
+            List<File> targetDirs = Arrays.asList(targetDir);
+            checkWritableDirs(targetDirs);
+
+            sessionManager = new SessionManager(targetDir, prefix, compression, maxFileSize, deduplication, isPartOf, description, operator, httpheader);
+        } else {
+        	// TODO check all target dirs.
+        }
+
         LAPWarcWriter w;
         /*
         if (arc)
@@ -82,9 +121,27 @@ public class Launcher {
         else
             aw = new WarcWriter(host, port, new File(dir), compression, maxFileSize, prefix);
         */
-        w = new LAPWarcWriter(host, port, new File(dir), prefix, compression, maxFileSize, deduplication, verbose,
-                isPartOf, description, operator, httpheader);
-        w.start(timeout);
+
+        if (sessionManager != null ) {
+            w = new LAPWarcWriter(host, port, sessionManager, verbose);
+            w.start(timeout);
+        } else {
+        	System.out.println("Epic fail!");
+        }
+    }
+
+    protected static void checkWritableDirs(List<File> dirs) {
+        String errors = "";
+        for (File dir : dirs) {
+            if (!dir.isDirectory()) {
+                errors += "Target is not a directory: '" + dir + "'\n";            }
+            else if (!dir.canWrite()) {
+                errors += "Target directory is not writable: '" + dir + "'\n";
+            }
+        }
+        if (!errors.isEmpty()) {
+            throw new IllegalArgumentException(errors);
+        }
     }
 
     private static void usage() {

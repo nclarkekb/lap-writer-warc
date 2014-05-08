@@ -24,6 +24,8 @@ public class LAPServlet extends HttpServlet implements ResourceManagerAbstract {
 	 */
 	private static final long serialVersionUID = 4894977060310522858L;
 
+    public static LAPEnvironment environment;
+
     private PathMap<Resource> pathMap;
 
     /*
@@ -35,13 +37,13 @@ public class LAPServlet extends HttpServlet implements ResourceManagerAbstract {
     public void init(ServletConfig servletConfig) throws ServletException {
         super.init(servletConfig);
 
+        environment = new LAPEnvironment(getServletContext(), servletConfig);
+
         pathMap = new PathMap<Resource>();
 
-        /*
-        RestResource restResource = new RestResource(environment);
-        restResource.resources_init(null, null);
-        restResource.resources_add(this);
-        */
+        SessionResource sessionResource = new SessionResource();
+        sessionResource.resources_init(environment);
+        sessionResource.resources_add(this);
 
         logger.log(Level.INFO, this.getClass().getName() + " initialized.");
     }

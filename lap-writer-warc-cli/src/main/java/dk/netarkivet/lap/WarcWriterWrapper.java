@@ -38,6 +38,8 @@ public class WarcWriterWrapper {
 
     protected long maxFileSize;
 
+    protected boolean bDeduplication;
+
     /*
      * Filename.
      */
@@ -69,11 +71,12 @@ public class WarcWriterWrapper {
 
     public Uri warcinfoRecordId;
 
-    private WarcWriterWrapper(File targetDir, String filePrefix, boolean bCompression, long maxFileSize) {
+    private WarcWriterWrapper(File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication) {
         this.targetDir = targetDir;
         this.filePrefix = filePrefix;
         this.bCompression = bCompression;
         this.maxFileSize = maxFileSize;
+        this.bDeduplication = bDeduplication;
         DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         date = dateFormat.format(new Date());
         sequenceNr = 0;
@@ -89,9 +92,9 @@ public class WarcWriterWrapper {
         }
     }
 
-    public static WarcWriterWrapper getWarcWriterInstance(File targetDir, String filePrefix, boolean bCompression, long maxFileSize,
+    public static WarcWriterWrapper getWarcWriterInstance(File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication,
     		String writerAgent, String isPartOf, String description,  String operator, String httpheader) {
-		WarcWriterWrapper w3 = new WarcWriterWrapper(targetDir, filePrefix, bCompression, maxFileSize);
+		WarcWriterWrapper w3 = new WarcWriterWrapper(targetDir, filePrefix, bCompression, maxFileSize, bDeduplication);
         StringBuilder sb = new StringBuilder();
         sb.append("software");
         sb.append(": ");
@@ -137,7 +140,11 @@ public class WarcWriterWrapper {
 		return w3;
 	}
 
-    protected void nextWriter() throws Exception {
+    public boolean deduplicate() {
+    	return bDeduplication;
+    }
+
+    public void nextWriter() throws Exception {
     	boolean bNewWriter = false;
     	if (writer_raf == null) {
     		bNewWriter = true;
@@ -187,7 +194,7 @@ public class WarcWriterWrapper {
     	}
     }
 
-    protected void closeWriter() throws IOException {
+    public void closeWriter() throws IOException {
         if (writer != null) {
             writer.close();
             writer = null;

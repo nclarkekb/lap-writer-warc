@@ -45,8 +45,8 @@ LAP WARC Writer Webapp .WAR
         <configuration>
           <!--warFile>Probe.war</warFile-->
           <url>http://kb-test-dab.kb.dk/manager</url>
-          <server>TomcatLAPServer</server>
-          <path>/</path>
+          <server>TomcatServer</server>
+          <path>/lap</path>
         </configuration>
       </plugin>
 

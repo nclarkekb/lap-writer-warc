@@ -6,7 +6,7 @@ import com.antiaction.common.json.annotation.JSONIgnore;
 import com.antiaction.common.json.annotation.JSONName;
 import com.antiaction.common.json.annotation.JSONNullable;
 
-public class Session {
+public class SessionConfig {
 
 	@JSONIgnore
 	protected WarcWriterWrapper w3;
@@ -46,10 +46,10 @@ public class Session {
 	@JSONNullable
     protected String httpheader = "";
 
-    public Session() {
+    public SessionConfig() {
     }
 
-    public Session(File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication,
+    public SessionConfig(File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication,
 			String isPartOf, String description, String operator, String httpheader) {
         this.targetDir = targetDir;
         this.filePrefix = filePrefix;

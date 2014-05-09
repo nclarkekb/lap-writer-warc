@@ -222,7 +222,10 @@ public class LAPWarcWriter extends DefaultLapWriter {
         	ip = "0.0.0.0";
         }
 
-    	/*
+        // debug
+        System.out.println("IP: " + ip);
+
+        /*
         // content type
         String contentType = "application/binary";
         List<String> contentTypes = metadata.getResponseHeader("Content-Type");

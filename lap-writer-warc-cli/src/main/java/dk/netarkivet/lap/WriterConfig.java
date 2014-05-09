@@ -19,7 +19,7 @@ public class WriterConfig {
 	@JSONNullable
 	public Boolean verbose = false;
 
-	public Session[] sessions;
+	public SessionConfig[] sessions;
 
     /** JSON encoding encoder/decoder dispatcher. */
     protected static JSONEncoding json_encoding = JSONEncoding.getJSONEncoding();

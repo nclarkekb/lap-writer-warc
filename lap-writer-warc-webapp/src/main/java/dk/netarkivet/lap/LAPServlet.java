@@ -41,6 +41,10 @@ public class LAPServlet extends HttpServlet implements ResourceManagerAbstract {
 
         pathMap = new PathMap<Resource>();
 
+        StaticResource staticResource = new StaticResource();
+        staticResource.resources_init(environment);
+        staticResource.resources_add(this);
+
         SessionResource sessionResource = new SessionResource();
         sessionResource.resources_init(environment);
         sessionResource.resources_add(this);

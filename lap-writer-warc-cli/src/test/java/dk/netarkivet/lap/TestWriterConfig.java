@@ -46,7 +46,7 @@ public class TestWriterConfig {
 		byte[] jsonBytes;
 		PushbackInputStream pbin;
 		WriterConfig wc;
-		Session session;
+		SessionConfig session;
 		try {
 			/*
 			 * 1.

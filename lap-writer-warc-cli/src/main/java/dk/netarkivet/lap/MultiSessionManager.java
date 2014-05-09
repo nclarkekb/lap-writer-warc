@@ -8,20 +8,20 @@ public class MultiSessionManager implements SessionManagerInterface {
 
     protected String writerAgent;
 
-    protected Map<String, Session> sessions = new HashMap<String, Session>();
+    protected Map<String, SessionConfig> sessions = new HashMap<String, SessionConfig>();
 
     @Override
 	public void setWriterAgent(String writerAgent) {
 		this.writerAgent = writerAgent;
 	}
 
-    public synchronized void addSession(String ip, Session session) {
+    public synchronized void addSession(String ip, SessionConfig session) {
     	sessions.put(ip, session);
     }
 
     @Override
 	public synchronized WarcWriterWrapper getWarcWriter(String ip) {
-		Session session = sessions.get(ip);
+		SessionConfig session = sessions.get(ip);
 		WarcWriterWrapper w3 = null;
 		if (session != null) {
 			w3 = session.w3;

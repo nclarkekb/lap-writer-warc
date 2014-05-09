@@ -111,7 +111,14 @@ public class Launcher {
 
             sessionManager = new SessionManager(targetDir, prefix, compression, maxFileSize, deduplication, isPartOf, description, operator, httpheader);
         } else {
-        	// TODO check all target dirs.
+        	sessionManager = new MultiSessionManager();
+        	SessionConfig session;
+        	for (int i=0; i<wc.sessions.length; ++i) {
+        		session = wc.sessions[i];
+                List<File> targetDirs = Arrays.asList(session.targetDir);
+                checkWritableDirs(targetDirs);
+                ((MultiSessionManager)sessionManager).addSession("1.2.3.4", session);
+        	}
         }
 
         LAPWarcWriter w;
@@ -122,12 +129,8 @@ public class Launcher {
             aw = new WarcWriter(host, port, new File(dir), compression, maxFileSize, prefix);
         */
 
-        if (sessionManager != null ) {
-            w = new LAPWarcWriter(host, port, sessionManager, verbose);
-            w.start(timeout);
-        } else {
-        	System.out.println("Epic fail!");
-        }
+        w = new LAPWarcWriter(host, port, sessionManager, verbose);
+        w.start(timeout);
     }
 
     protected static void checkWritableDirs(List<File> dirs) {

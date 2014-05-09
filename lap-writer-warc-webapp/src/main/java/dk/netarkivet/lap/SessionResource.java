@@ -127,7 +127,7 @@ public class SessionResource implements ResourceAbstract {
             String description = req.getParameter("description");
             String operator = req.getParameter("operator");
             String httpheader = req.getParameter("httpheader");
-            Session session = new Session(targetDir, filePrefix, bCompression, maxFileSize, bDeduplication,
+            SessionConfig session = new SessionConfig(targetDir, filePrefix, bCompression, maxFileSize, bDeduplication,
             		isPartOf, description, operator, httpheader);
             String ip = req.getRemoteAddr();
             environment.sessionManager.addSession(ip, session);

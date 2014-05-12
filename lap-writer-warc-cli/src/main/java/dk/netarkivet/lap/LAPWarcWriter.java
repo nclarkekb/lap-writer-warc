@@ -62,7 +62,8 @@ public class LAPWarcWriter extends DefaultLapWriter {
     public LAPWarcWriter(String lapHost, int lapPort, SessionManagerInterface sessionManager, boolean bVerbose) {
         super(lapHost, lapPort);
 
-        sessionManager.setWriterAgent("Created by INA's Live Archiving Proxy Writer (" + getInfo().getWriterAgent() + ")");
+        this.sessionManager = sessionManager;
+        this.sessionManager.setWriterAgent("Created by INA's Live Archiving Proxy Writer (" + getInfo().getWriterAgent() + ")");
 
         this.bVerbose = bVerbose;
 
@@ -204,26 +205,28 @@ public class LAPWarcWriter extends DefaultLapWriter {
     	/*
     	 * Handle empty payload.
     	 */
-        if (size == null) {
+
+    	if (size == null) {
         	size = 0L;
         }
         if (data == null) {
         	data = new ByteArrayInputStream(zeroArr);
         }
+
         /*
-         * Timestamp.
+         * Metadata (Request time, ip, request headers).
          */
+
         long requestTimestamp = Long.parseLong(metadata.getInfo("request_time") + "");
-        /*
-         * Client IP.
-         */
         String ip = new String(metadata.getInfo("request_ip") + "");
         if (ip == null || ip.length() == 0) {
         	ip = "0.0.0.0";
         }
+        String requestHeader = metadata.getRequestHeaders();
 
         // debug
         System.out.println("IP: " + ip);
+        System.out.println(requestHeader);
 
         /*
         // content type
@@ -388,7 +391,6 @@ public class LAPWarcWriter extends DefaultLapWriter {
              * Request.
              */
 
-            String requestHeader = metadata.getRequestHeaders();
             if (requestHeader != null) {
                 /*
                  * Digest.

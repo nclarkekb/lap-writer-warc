@@ -3,7 +3,6 @@ package dk.netarkivet.lap;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.PushbackInputStream;
 import java.util.Arrays;
 import java.util.List;
@@ -115,9 +114,10 @@ public class Launcher {
         	SessionConfig session;
         	for (int i=0; i<wc.sessions.length; ++i) {
         		session = wc.sessions[i];
+        		session.targetDir = new File(session.dir);
                 List<File> targetDirs = Arrays.asList(session.targetDir);
                 checkWritableDirs(targetDirs);
-                ((MultiSessionManager)sessionManager).addSession("1.2.3.4", session);
+                ((MultiSessionManager)sessionManager).addSession(session);
         	}
         }
 

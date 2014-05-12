@@ -130,7 +130,7 @@ public class SessionResource implements ResourceAbstract {
             SessionConfig session = new SessionConfig(targetDir, filePrefix, bCompression, maxFileSize, bDeduplication,
             		isPartOf, description, operator, httpheader);
             String ip = req.getRemoteAddr();
-            environment.sessionManager.addSession(ip, session);
+            environment.sessionManager.addSession(session);
         }
 
         Template template = environment.templateMaster.getTemplate("session_add.html");

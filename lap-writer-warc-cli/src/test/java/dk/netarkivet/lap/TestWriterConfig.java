@@ -64,7 +64,7 @@ public class TestWriterConfig {
 
     		session = wc.sessions[0];
 
-    		//Assert.assertEquals(".", session.targetDir);
+    		Assert.assertEquals(".", session.dir);
     		Assert.assertEquals("LAP-KB-SB-TEST", session.filePrefix);
     		Assert.assertEquals(new Boolean(true), session.bCompression);
     		Assert.assertEquals(new Long(12345678L), session.maxFileSize);
@@ -89,7 +89,7 @@ public class TestWriterConfig {
 
     		session = wc.sessions[0];
 
-    		//Assert.assertEquals(".", session.targetDir);
+    		Assert.assertEquals(".", session.dir);
     		Assert.assertEquals("LAP", session.filePrefix);
     		Assert.assertEquals(new Boolean(false), session.bCompression);
     		Assert.assertEquals(new Long(1073741824L), session.maxFileSize);

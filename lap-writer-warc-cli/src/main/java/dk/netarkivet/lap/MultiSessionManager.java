@@ -15,8 +15,10 @@ public class MultiSessionManager implements SessionManagerInterface {
 		this.writerAgent = writerAgent;
 	}
 
-    public synchronized void addSession(String ip, SessionConfig session) {
-    	sessions.put(ip, session);
+    public synchronized void addSession(SessionConfig session) {
+    	for (int i=0; i<session.ip.length; ++i) {
+        	sessions.put(session.ip[i], session);
+    	}
     }
 
     @Override

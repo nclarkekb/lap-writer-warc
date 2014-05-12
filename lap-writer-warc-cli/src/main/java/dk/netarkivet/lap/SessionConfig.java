@@ -14,6 +14,11 @@ public class SessionConfig {
 	@JSONIgnore
     protected File targetDir;
 
+	protected String dir;
+
+	@JSONNullable
+	protected String[] ip;
+
 	@JSONName("prefix")
 	@JSONNullable
     protected String filePrefix = "LAP";
@@ -52,6 +57,7 @@ public class SessionConfig {
     public SessionConfig(File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication,
 			String isPartOf, String description, String operator, String httpheader) {
         this.targetDir = targetDir;
+        this.dir = targetDir.getPath();
         this.filePrefix = filePrefix;
         this.bCompression = bCompression;
         this.maxFileSize = maxFileSize;

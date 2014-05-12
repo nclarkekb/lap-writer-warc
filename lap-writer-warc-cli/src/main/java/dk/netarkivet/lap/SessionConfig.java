@@ -11,10 +11,10 @@ public class SessionConfig {
 	@JSONIgnore
 	protected WarcWriterWrapper w3;
 
+	protected String dir;
+
 	@JSONIgnore
     protected File targetDir;
-
-	protected String dir;
 
 	@JSONNullable
 	protected String[] ip;
@@ -54,8 +54,9 @@ public class SessionConfig {
     public SessionConfig() {
     }
 
-    public SessionConfig(File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication,
+    public SessionConfig(String dir, File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication,
 			String isPartOf, String description, String operator, String httpheader) {
+    	this.dir = dir;
         this.targetDir = targetDir;
         this.dir = targetDir.getPath();
         this.filePrefix = filePrefix;

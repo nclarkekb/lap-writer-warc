@@ -110,7 +110,8 @@ public class SessionResource implements ResourceAbstract {
 
         String method = req.getMethod();
         if ("POST".equals(method)) {
-        	File targetDir = new File("");
+        	String dir = "";
+        	File targetDir = new File(dir);
         	String filePrefix = req.getParameter("fileprefix");
         	String compressionStr = req.getParameter("compression");
         	boolean bCompression = false;
@@ -127,10 +128,10 @@ public class SessionResource implements ResourceAbstract {
             String description = req.getParameter("description");
             String operator = req.getParameter("operator");
             String httpheader = req.getParameter("httpheader");
-            SessionConfig session = new SessionConfig(targetDir, filePrefix, bCompression, maxFileSize, bDeduplication,
+            SessionConfig sessionConfig = new SessionConfig(dir, targetDir, filePrefix, bCompression, maxFileSize, bDeduplication,
             		isPartOf, description, operator, httpheader);
             String ip = req.getRemoteAddr();
-            environment.sessionManager.addSession(session);
+            environment.sessionManager.addSession(sessionConfig);
         }
 
         Template template = environment.templateMaster.getTemplate("session_add.html");

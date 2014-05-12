@@ -30,15 +30,7 @@ public class WarcWriterWrapper {
      * Configuration.
      */
 
-    protected File targetDir;
-
-    protected String filePrefix;
-
-    protected boolean bCompression;
-
-    protected long maxFileSize;
-
-    protected boolean bDeduplication;
+    protected SessionConfig sessionConfig;
 
     /*
      * Filename.
@@ -71,12 +63,8 @@ public class WarcWriterWrapper {
 
     public Uri warcinfoRecordId;
 
-    private WarcWriterWrapper(File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication) {
-        this.targetDir = targetDir;
-        this.filePrefix = filePrefix;
-        this.bCompression = bCompression;
-        this.maxFileSize = maxFileSize;
-        this.bDeduplication = bDeduplication;
+    private WarcWriterWrapper(SessionConfig sessionConfig) {
+    	this.sessionConfig = sessionConfig;
         DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         date = dateFormat.format(new Date());
         sequenceNr = 0;
@@ -85,47 +73,46 @@ public class WarcWriterWrapper {
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
-        if (bCompression) {
+        if (sessionConfig.bCompression) {
             extension = ".warc.gz";
         } else {
             extension = ".warc";
         }
     }
 
-    public static WarcWriterWrapper getWarcWriterInstance(File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication,
-    		String writerAgent, String isPartOf, String description,  String operator, String httpheader) {
-		WarcWriterWrapper w3 = new WarcWriterWrapper(targetDir, filePrefix, bCompression, maxFileSize, bDeduplication);
+    public static WarcWriterWrapper getWarcWriterInstance(SessionConfig sessionConfig) {
+		WarcWriterWrapper w3 = new WarcWriterWrapper(sessionConfig);
         StringBuilder sb = new StringBuilder();
         sb.append("software");
         sb.append(": ");
-        sb.append(writerAgent);
+        sb.append(sessionConfig.writerAgent);
         sb.append("\r\n");
         sb.append("host");
         sb.append(": ");
         sb.append(w3.hostname);
         sb.append("\r\n");
-        if (isPartOf != null && isPartOf.length() > 0) {
+        if (sessionConfig.isPartOf != null && sessionConfig.isPartOf.length() > 0) {
             sb.append("isPartOf");
             sb.append(": ");
-            sb.append(isPartOf);
+            sb.append(sessionConfig.isPartOf);
             sb.append("\r\n");
         }
-        if (description != null && description.length() > 0) {
+        if (sessionConfig.description != null && sessionConfig.description.length() > 0) {
             sb.append("description");
             sb.append(": ");
-            sb.append(description);
+            sb.append(sessionConfig.description);
             sb.append("\r\n");
         }
-        if (operator != null && operator.length() > 0) {
+        if (sessionConfig.operator != null && sessionConfig.operator.length() > 0) {
             sb.append("operator");
             sb.append(": ");
-            sb.append(operator);
+            sb.append(sessionConfig.operator);
             sb.append("\r\n");
         }
-        if (httpheader != null && httpheader.length() > 0) {
+        if (sessionConfig.httpheader != null && sessionConfig.httpheader.length() > 0) {
             sb.append("httpheader");
             sb.append(": ");
-            sb.append(httpheader);
+            sb.append(sessionConfig.httpheader);
             sb.append("\r\n");
         }
         sb.append("format");
@@ -141,22 +128,22 @@ public class WarcWriterWrapper {
 	}
 
     public boolean deduplicate() {
-    	return bDeduplication;
+    	return sessionConfig.bDeduplication;
     }
 
     public void nextWriter() throws Exception {
     	boolean bNewWriter = false;
     	if (writer_raf == null) {
     		bNewWriter = true;
-    	} else if (writer_raf.length() > maxFileSize) {
+    	} else if (writer_raf.length() > sessionConfig.maxFileSize) {
         	closeWriter();
     		bNewWriter = true;
     	}
     	if (bNewWriter) {
-            String finishedFilename = filePrefix + "-" + date + "-" + String.format("%05d", sequenceNr++) + "-" + hostname + extension;
+            String finishedFilename = sessionConfig.filePrefix + "-" + date + "-" + String.format("%05d", sequenceNr++) + "-" + hostname + extension;
             String activeFilename = finishedFilename + ACTIVE_SUFFIX;
-            File finishedFile = new File(targetDir, finishedFilename);
-            writerFile = new File(targetDir, activeFilename);
+            File finishedFile = new File(sessionConfig.targetDir, finishedFilename);
+            writerFile = new File(sessionConfig.targetDir, activeFilename);
             if (writerFile.exists()) {
                 throw new IOException(writerFile + " already exists, will not overwrite");
             }
@@ -168,7 +155,7 @@ public class WarcWriterWrapper {
             writer_raf.seek(0L);
             writer_raf.setLength(0L);
             writer_rafout = new RandomAccessFileOutputStream(writer_raf);
-            writer = WarcWriterFactory.getWriter(writer_rafout, 8192, bCompression);
+            writer = WarcWriterFactory.getWriter(writer_rafout, 8192, sessionConfig.bCompression);
 
             byte[] warcFieldsBytes = warcFields.getBytes("ISO-8859-1");
             ByteArrayInputStream bin = new ByteArrayInputStream(warcFieldsBytes);

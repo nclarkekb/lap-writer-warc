@@ -101,6 +101,7 @@ public class Launcher {
         }
 
         SessionManagerInterface sessionManager = null;
+    	SessionConfig sessionConfig;
 
         if (wc == null) {
             File targetDir = new File(dir);
@@ -108,16 +109,16 @@ public class Launcher {
             List<File> targetDirs = Arrays.asList(targetDir);
             checkWritableDirs(targetDirs);
 
-            sessionManager = new SessionManager(targetDir, prefix, compression, maxFileSize, deduplication, isPartOf, description, operator, httpheader);
+            sessionConfig = new SessionConfig(dir, targetDir, prefix, compression, maxFileSize, deduplication, isPartOf, description, operator, httpheader);
+            sessionManager = new SessionManager(sessionConfig);
         } else {
         	sessionManager = new MultiSessionManager();
-        	SessionConfig session;
         	for (int i=0; i<wc.sessions.length; ++i) {
-        		session = wc.sessions[i];
-        		session.targetDir = new File(session.dir);
-                List<File> targetDirs = Arrays.asList(session.targetDir);
+        		sessionConfig = wc.sessions[i];
+        		sessionConfig.targetDir = new File(sessionConfig.dir);
+                List<File> targetDirs = Arrays.asList(sessionConfig.targetDir);
                 checkWritableDirs(targetDirs);
-                ((MultiSessionManager)sessionManager).addSession(session);
+                ((MultiSessionManager)sessionManager).addSession(sessionConfig);
         	}
         }
 

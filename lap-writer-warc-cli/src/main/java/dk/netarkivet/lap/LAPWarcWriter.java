@@ -225,8 +225,8 @@ public class LAPWarcWriter extends DefaultLapWriter {
         String requestHeader = metadata.getRequestHeaders();
 
         // debug
-        System.out.println("IP: " + ip);
-        System.out.println(requestHeader);
+        //System.out.println("IP: " + ip);
+        //System.out.println(requestHeader);
 
         /*
         // content type

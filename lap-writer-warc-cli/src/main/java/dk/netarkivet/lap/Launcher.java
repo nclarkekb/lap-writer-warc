@@ -25,11 +25,7 @@ public class Launcher {
         int port = Integer.parseInt(hostPort[1]);
 
         String dir = null;
-        /*
-        boolean compression = ArcWriter.DEFAULT_COMPRESSION;
-        long maxFileSize = ArcWriter.DEFAULT_MAX_FILE_SIZE;
-        String prefix = ArcWriter.DEFAULT_PREFIX;
-        */
+        String ip = null;
         boolean compression = false;
         long maxFileSize = 1073741824L;
         String prefix = "LAP";
@@ -48,6 +44,7 @@ public class Launcher {
             String val = arg.length < 2 ? null : arg[1];
 
             if ("--dir".equals(key)) dir = val;
+            if ("--ip".equals(key)) ip = val;
             if ("--prefix".equals(key)) prefix = val;
             if ("--compression".equals(key)) compression = Boolean.parseBoolean(val);
             if ("--compress".equals(key)) compression = Boolean.parseBoolean(val);
@@ -82,20 +79,29 @@ public class Launcher {
 
         if (wc == null && dir == null) usage();
 
-        if (wc == null && verbose) {
+        if (wc == null) {
+        	if (verbose) {
+                String msg =
+                        "          LAP: '" + host + ":" + port + "'\r\n" +
+                        "          dir: '" + dir + "'\r\n" +
+                        "           ip: '" + ip + "'\r\n" +
+                        "       prefix: '" + prefix + "'\r\n" +
+                        "     compress: '" + compression + "'\r\n" +
+                        "max-file-size: '" + maxFileSize + "'\r\n" +
+                        "      timeout: '" + timeout + "'\r\n" +
+                        "deduplication: '" + deduplication + "'\r\n" +
+                        "     ispartof: '" + isPartOf + "'\r\n" +
+                        "  description: '" + description + "'\r\n" +
+                        "     operator: '" + operator + "'\r\n" +
+                        "   httpheader: '" + httpheader + "'\r\n" +
+                        "      verbose: '" + verbose + "'\r\n" +
+                        "";
+                System.out.println(msg);
+        	}
+        } else {
             String msg =
                     "          LAP: '" + host + ":" + port + "'\r\n" +
-                    "          dir: '" + dir + "'\r\n" +
-                    "       prefix: '" + prefix + "'\r\n" +
-                    "     compress: '" + compression + "'\r\n" +
-                    "max-file-size: '" + maxFileSize + "'\r\n" +
-                    "      timeout: '" + timeout + "'\r\n" +
-                    "deduplication: '" + deduplication + "'\r\n" +
-                    "     ispartof: '" + isPartOf + "'\r\n" +
-                    "  description: '" + description + "'\r\n" +
-                    "     operator: '" + operator + "'\r\n" +
-                    "   httpheader: '" + httpheader + "'\r\n" +
-                    "      verbose: '" + verbose + "'\r\n" +
+                    "       config: '" + config + "'\r\n" +
                     "";
             System.out.println(msg);
         }
@@ -109,7 +115,12 @@ public class Launcher {
             List<File> targetDirs = Arrays.asList(targetDir);
             checkWritableDirs(targetDirs);
 
-            sessionConfig = new SessionConfig(dir, targetDir, prefix, compression, maxFileSize, deduplication, isPartOf, description, operator, httpheader);
+            String[] ipList = null;
+            if (ip != null && ip.length() > 0) {
+            	ipList = new String[] { ip };
+            }
+
+            sessionConfig = new SessionConfig(dir, targetDir, ipList, prefix, compression, maxFileSize, deduplication, isPartOf, description, operator, httpheader);
             sessionManager = new SessionManager(sessionConfig);
         } else {
         	sessionManager = new MultiSessionManager();
@@ -153,6 +164,7 @@ public class Launcher {
                 "\nUsage:\r\n"
                 + "lap-writer-arc lap-host:lap-port\r\n"
                 + "  --dir=warcFileTargetDirectory\r\n"
+                + "  [--ip=ipAddress]\r\n"
                 + "  [--prefix=fileNamesPrefix]\r\n"
                 + "  [--compress=true|false]\r\n"
                 + "  [--max-file-size=maxArcFileSize]\r\n"

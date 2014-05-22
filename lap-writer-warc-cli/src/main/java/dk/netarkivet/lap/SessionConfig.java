@@ -54,11 +54,11 @@ public class SessionConfig {
     public SessionConfig() {
     }
 
-    public SessionConfig(String dir, File targetDir, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication,
+    public SessionConfig(String dir, File targetDir, String[] ip, String filePrefix, boolean bCompression, long maxFileSize, boolean bDeduplication,
 			String isPartOf, String description, String operator, String httpheader) {
     	this.dir = dir;
         this.targetDir = targetDir;
-        this.dir = targetDir.getPath();
+    	this.ip = ip;
         this.filePrefix = filePrefix;
         this.bCompression = bCompression;
         this.maxFileSize = maxFileSize;

@@ -49,6 +49,8 @@ public class LAPWarcWriter extends DefaultLapWriter {
     /** Writer name and version. */
     protected static final String version = "LAP WARC writer v0.5";
 
+    protected boolean bRunning = false;
+
     protected boolean bVerbose;
 
     protected File tmpdir;

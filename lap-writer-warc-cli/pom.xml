@@ -16,6 +16,10 @@
 LAP WARC Writer CLI
   </description>
 
+  <properties>
+    <jwat.version>1.0.1</jwat.version>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>fr.ina.dlweb</groupId>
@@ -30,22 +34,22 @@ LAP WARC Writer CLI
     <dependency>
       <groupId>org.jwat</groupId>
       <artifactId>jwat-common</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <version>${jwat.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jwat</groupId>
       <artifactId>jwat-gzip</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <version>${jwat.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jwat</groupId>
       <artifactId>jwat-arc</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <version>${jwat.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jwat</groupId>
       <artifactId>jwat-warc</artifactId>
-      <version>1.0.1-SNAPSHOT</version>
+      <version>${jwat.version}</version>
     </dependency>
     <dependency>
       <groupId>com.antiaction</groupId>
@@ -88,7 +92,7 @@ LAP WARC Writer CLI
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.10</version>
+      <version>4.11</version>
       <scope>test</scope>
     </dependency>
 

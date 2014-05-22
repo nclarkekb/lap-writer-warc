@@ -90,7 +90,8 @@ public class LAPServlet extends HttpServlet implements ResourceManagerAbstract {
             pathInfo = "/";
         }
 
-        logger.log(Level.INFO, req.getMethod() + " " + req.getPathInfo());
+        // debug
+        //logger.log(Level.INFO, req.getMethod() + " " + req.getPathInfo());
 
         List<Integer> numerics = new ArrayList<Integer>();
         Resource resource = pathMap.get(pathInfo, numerics);

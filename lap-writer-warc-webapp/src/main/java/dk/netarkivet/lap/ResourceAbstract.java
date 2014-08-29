@@ -13,8 +13,8 @@ public interface ResourceAbstract {
 
     public void resources_add(ResourceManagerAbstract resourceManager);
 
-    public void resource_service(HttpServletRequest req,
-            HttpServletResponse resp, ServletContext servletContext,
+    public void resource_service(ServletContext servletContext, 
+    		HttpServletRequest req, HttpServletResponse resp, User current_user, 
             int resource_id, List<Integer> numerics, String pathInfo)
             throws IOException;
 

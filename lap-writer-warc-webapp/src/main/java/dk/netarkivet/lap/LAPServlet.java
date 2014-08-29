@@ -11,11 +11,13 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import com.antiaction.common.servlet.AutoIncrement;
 import com.antiaction.common.servlet.PathMap;
+import com.antiaction.common.templateengine.login.LoginTemplateCallback;
 
-public class LAPServlet extends HttpServlet implements ResourceManagerAbstract {
+public class LAPServlet extends HttpServlet implements ResourceManagerAbstract, LoginTemplateCallback<User> {
 
     private static Logger logger = Logger.getLogger(LAPServlet.class.getName());
 
@@ -72,6 +74,10 @@ public class LAPServlet extends HttpServlet implements ResourceManagerAbstract {
      */
     @Override
     public void destroy() {
+        if (environment != null) {
+            environment.cleanup();
+            environment = null;
+        }
         logger.log(Level.INFO, this.getClass().getName() + " destroyed.");
         super.destroy();
     }
@@ -85,23 +91,101 @@ public class LAPServlet extends HttpServlet implements ResourceManagerAbstract {
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        String pathInfo = req.getPathInfo();
-        if (pathInfo == null || pathInfo.length() == 0) {
-            pathInfo = "/";
+        HttpSession session = req.getSession();
+        try {
+            // debug
+            // System.out.println( req.getContextPath() );
+            // System.out.println( req.getServletPath() );
+            // System.out.println( req.getPathInfo() );
+            // System.out.println( req.getRealPath( req.getContextPath() ) );
+            // System.out.println( req.getRealPath( req.getPathInfo() ) );
+
+            User current_user = null;
+
+            // If we have a valid session look for an already logged in current user.
+            if (session != null) {
+                current_user = (User) session.getAttribute("user");
+            }
+
+            // Look for cookies in case of no current user in session.
+            if (current_user == null && session != null && session.isNew()) {
+                current_user = environment.loginHandler.loginFromCookie(req, resp, session, this);
+            }
+
+            String action = req.getParameter("action");
+
+            // Logout, login or administration.
+            if (action != null && "logout".compareToIgnoreCase(action) == 0) {
+                environment.loginHandler.logoff(req, resp, session);
+            } else {
+                String pathInfo = req.getPathInfo();
+                if (pathInfo == null || pathInfo.length() == 0) {
+                    pathInfo = "/";
+                }
+
+                // debug
+                //logger.log(Level.INFO, req.getMethod() + " " + req.getPathInfo());
+
+                List<Integer> numerics = new ArrayList<Integer>();
+                Resource resource = pathMap.get(pathInfo, numerics);
+
+                if (resource != null) {
+                    if (resource.bSecured && current_user == null) {
+                        environment.loginHandler.loginFromForm(req, resp, session, this);
+                    } else if (!resource.bSecured) {
+                        resource.resources.resource_service(this.getServletContext(), req, resp, current_user, resource.resource_id, numerics, pathInfo);
+                    } else {
+                        resource.resources.resource_service(this.getServletContext(), req, resp, current_user, resource.resource_id, numerics, pathInfo);
+                    }
+                } else {
+                    resp.sendError(HttpServletResponse.SC_NOT_FOUND, pathInfo);
+                }
+            }
+        } catch (Throwable t) {
+        	logger.log(Level.SEVERE, t.toString(), t);
         }
+    }
 
-        // debug
-        //logger.log(Level.INFO, req.getMethod() + " " + req.getPathInfo());
+    @Override
+    public User validateUserCookie(String token) {
+        return null;
+    }
 
-        List<Integer> numerics = new ArrayList<Integer>();
-        Resource resource = pathMap.get(pathInfo, numerics);
-
-        if (resource != null) {
-            resource.resources.resource_service(req, resp, getServletContext(),
-                    resource.resource_id, numerics, pathInfo);
+    @Override
+    public User validateUserCredentials(String id, String password) {
+        User current_user = null;
+    	/*
+        Connection conn = null;
+        try {
+            conn = environment.dataSource.getConnection();
+            current_user = User.getAdminByCredentials(conn, id, password);
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, e.toString(), e);
+        } finally {
+            try {
+                if (conn != null && !conn.isClosed()) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                logger.log(Level.SEVERE, e.toString(), e);
+            }
+        }
+        if (current_user != null) {
+            if (!current_user.active) {
+            	current_user = null;
+                logger.info("User account with id '" + id + "' is not active");
+            }
         } else {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND, pathInfo);
+            logger.info("No known user '" + id + "' with the given credentials");
         }
+        */
+        current_user = new User();
+        return current_user;
+    }
+
+    @Override
+    public String getTranslated(String text_idstring) {
+        return null;
     }
 
     class Resource {

@@ -8,6 +8,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
 import com.antiaction.common.templateengine.TemplateMaster;
+import com.antiaction.common.templateengine.login.LoginTemplateHandler;
 import com.antiaction.common.templateengine.storage.TemplateFileStorageManager;
 
 public class LAPEnvironment {
@@ -23,6 +24,10 @@ public class LAPEnvironment {
      */
 
     public TemplateMaster templateMaster = null;
+
+    private String login_template_name = null;
+
+    public LoginTemplateHandler<User> loginHandler = null;
 
     /*
      * LAP.
@@ -46,7 +51,20 @@ public class LAPEnvironment {
         this.servletConfig = theServletConfig;
         templateMaster = TemplateMaster.getInstance("default");
         templateMaster.addTemplateStorage(TemplateFileStorageManager.getInstance(servletContext.getRealPath("/")));
-        sessionManager = new MultiSessionManager();
+
+        login_template_name = servletConfig.getInitParameter("login-template");
+
+        if (login_template_name != null && login_template_name.length() > 0) {
+            logger.info("Using '" +  login_template_name + "' as login template.");
+        } else {
+            throw new ServletException("'login_template_name' must be configured!");
+        }
+
+        loginHandler = new LoginTemplateHandler<User>();
+        loginHandler.templateMaster = templateMaster;
+        loginHandler.templateName = login_template_name;
+        loginHandler.title = "DAB - Login";
+        loginHandler.adminPath = "/lap/";
 
         lapHost = theServletConfig.getInitParameter("lap-host");
         String lapWriterPortStr = theServletConfig.getInitParameter("lap-writer-port");
@@ -87,10 +105,15 @@ public class LAPEnvironment {
         	throw new ServletException("'warc-dir' is not a valid directory!");
         }
 
+        sessionManager = new MultiSessionManager();
+
         wt = new LAPWarcWriterThread(lapHost, lapWriterPort, lapTimeout, sessionManager, false);
     }
 
     public void cleanup() {
+    	if (wt != null) {
+            wt.stop();
+    	}
         templateMaster = null;
         servletConfig = null;
     }

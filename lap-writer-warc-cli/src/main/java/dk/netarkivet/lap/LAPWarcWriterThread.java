@@ -31,4 +31,13 @@ public class LAPWarcWriterThread implements Runnable {
 		logger.log(Level.INFO, "LAP Warc writer stopped.");
 	}
 
+    public void stop() {
+    	new Thread() {
+    		public void run() {
+    			logger.log(Level.INFO, "Trying to stop LAP Warc writer.");
+    			w.stop();
+    		}
+    	}.start();
+    }
+
 }

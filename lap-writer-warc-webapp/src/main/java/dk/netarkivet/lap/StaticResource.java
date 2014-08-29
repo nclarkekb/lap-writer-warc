@@ -28,8 +28,8 @@ public class StaticResource implements ResourceAbstract {
     }
 
     @Override
-    public void resource_service(HttpServletRequest req, HttpServletResponse resp, ServletContext servletContext,
-    		int resource_id, List<Integer> numerics, String pathInfo) throws IOException {
+    public void resource_service(ServletContext servletContext, HttpServletRequest req, HttpServletResponse resp,
+    		User current_user, int resource_id, List<Integer> numerics, String pathInfo) throws IOException {
         RandomAccessFile raf = new RandomAccessFile(
                 servletContext.getRealPath(req.getPathInfo()), "r");
         byte[] buffer = new byte[(int) raf.length()];

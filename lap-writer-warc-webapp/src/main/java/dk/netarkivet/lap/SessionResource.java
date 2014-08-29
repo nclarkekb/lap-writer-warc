@@ -36,13 +36,13 @@ public class SessionResource implements ResourceAbstract {
 
     @Override
     public void resources_add(ResourceManagerAbstract resourceManager) {
-        R_INDEX = resourceManager.resource_add(this, "/", false);
-        R_ADD = resourceManager.resource_add(this, "/add/", false);
+        R_INDEX = resourceManager.resource_add(this, "/", true);
+        R_ADD = resourceManager.resource_add(this, "/add/", true);
     }
 
     @Override
-    public void resource_service(HttpServletRequest req, HttpServletResponse resp, ServletContext servletContext,
-            int resource_id, List<Integer> numerics, String pathInfo)
+    public void resource_service(ServletContext servletContext, HttpServletRequest req, HttpServletResponse resp, 
+            User current_user, int resource_id, List<Integer> numerics, String pathInfo)
             throws IOException {
         String method = req.getMethod();
         if (resource_id == R_INDEX) {

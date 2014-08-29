@@ -204,6 +204,8 @@ public class LAPWarcWriter extends DefaultLapWriter {
         }
         */
 
+    	System.out.println(".");
+
     	/*
     	 * Handle empty payload.
     	 */

@@ -19,11 +19,15 @@ public class SessionManager implements SessionManagerInterface {
 
 	@Override
 	public WarcWriterWrapper getWarcWriter(String ip) {
-		if (sessionConfig.ip == null || sessionConfig.ip.equals(ip)) {
-	        if (w3 == null) {
-	        	w3 = WarcWriterWrapper.getWarcWriterInstance(sessionConfig);
-	        }
-		}
+        if (w3 == null) {
+    		String scIp = null;
+    		if (sessionConfig.ip != null && sessionConfig.ip.length > 0) {
+    			scIp = sessionConfig.ip[0];
+    		}
+    		if (scIp == null || scIp.equals(ip)) {
+            	w3 = WarcWriterWrapper.getWarcWriterInstance(sessionConfig);
+    		}
+        }
 		return w3;
 	}
 

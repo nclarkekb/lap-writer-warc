@@ -174,8 +174,8 @@ public class Launcher {
                 + "  [--description=warcinfo description]\r\n"
                 + "  [--operator=warcinfo operator]\r\n"
                 + "  [--httpheader=warcinfo httpheader]\r\n"
-                + "  [--config=config.json] "
-                + "  [--verbose] "
+                + "  [--config=config.json]\r\n"
+                + "  [--verbose]"
                 ;
         System.out.println(usage);
         System.exit(1);

@@ -6,7 +6,7 @@
   <parent>
     <groupId>fr.ina.dlweb</groupId>
     <artifactId>lap-writer-warc-parent</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>lap-writer-warc-webapp</artifactId>
@@ -17,10 +17,6 @@
   <description>
 LAP WARC Writer Webapp
   </description>
-
-  <properties>
-    <jwat.version>1.0.1</jwat.version>
-  </properties>
 
   <dependencies>
     <dependency>
@@ -38,22 +34,18 @@ LAP WARC Writer Webapp
     <dependency>
       <groupId>org.jwat</groupId>
       <artifactId>jwat-common</artifactId>
-      <version>${jwat.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jwat</groupId>
       <artifactId>jwat-gzip</artifactId>
-      <version>${jwat.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jwat</groupId>
       <artifactId>jwat-arc</artifactId>
-      <version>${jwat.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jwat</groupId>
       <artifactId>jwat-warc</artifactId>
-      <version>${jwat.version}</version>
     </dependency>
 
     <dependency>

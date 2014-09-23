@@ -1,0 +1,18 @@
+{
+	"timeout": 10,
+	"verbose": true,
+	"sessions": [
+		{
+			"ip": ["192.168.50.40"],
+			"dir": ".",
+			"prefix": "LAP-KB-SB-TEST",
+			"compression": false,
+			"max-file-size": 12345678,
+			"deduplication": false,
+			"ispartof": "LAP Test",
+			"description": "Files archive as part of testing INA's LAP.",
+			"operator": "KB/SB",
+			"httpheader": "LAP Test samling"
+		}
+	]
+}

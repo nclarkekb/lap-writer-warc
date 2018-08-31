@@ -1,0 +1,41 @@
+<@master file="session_master.html">
+
+<place placeholder="scripts">
+    <script type="text/javascript">
+function select_all(chk) {
+  if (chk.type && chk instanceof HTMLInputElement && chk.getAttribute('type') == 'checkbox') {
+    chk.checked = true;
+  }
+  else {
+    for (i = 0; i < chk.length; i++) {
+      chk[i].checked = true;
+    }
+  }
+}
+
+function deselect_all(chk) {
+  if (chk.type && chk instanceof HTMLInputElement && chk.getAttribute('type') == 'checkbox') {
+    chk.checked = false;
+  }
+  else {
+    for (i = 0; i < chk.length; i++) {
+      chk[i].checked = false;
+    }
+  }
+}
+    </script>
+</place>
+
+<place placeholder="content">
+
+<form class="form-horizontal" action="?" id="myform" name="myform" method="post" enctype="application/x-www-form-urlencoded" accept-charset="utf-8">
+<placeholder id="action_buttons" />
+<placeholder id="pagination" />
+
+<placeholder id="content" />
+
+<placeholder id="domains" />
+<placeholder id="pagination2" />
+</form>
+
+</place>

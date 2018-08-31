@@ -50,7 +50,7 @@ public class LAPEnvironment {
     public LAPEnvironment(ServletContext servletContext, ServletConfig theServletConfig) throws ServletException {
         this.servletConfig = theServletConfig;
         templateMaster = TemplateMaster.getInstance("default");
-        templateMaster.addTemplateStorage(TemplateFileStorageManager.getInstance(servletContext.getRealPath("/")));
+        templateMaster.addTemplateStorage(TemplateFileStorageManager.getInstance(servletContext.getRealPath("/"), "UTF-8"));
 
         login_template_name = servletConfig.getInitParameter("login-template");
 

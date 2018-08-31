@@ -1,0 +1,125 @@
+<@master file="session_master.html">
+
+<place placeholder="content">
+    <div class="container-fluid">
+      <form class="form-horizontal" action="?" name="insert_form" method="post" enctype="application/x-www-form-urlencoded" accept-charset="utf-8">
+      <div class="row-fluid">
+        <div class="span8">
+
+<placeholder id="alert" />
+
+          <div class="row-fluid">
+            <div class="span6 bgcolor">
+              <div class="control-group">
+                <label class="control-label" for="ips">IPs</label>
+                <div class="controls">
+                  <input type="text" id="ips" name="ips" placeholder="list of ip's">
+                </div>
+              </div>
+            </div><!--/span-->
+          </div><!--/row-->
+
+          <div class="row-fluid">
+            <div class="span6 bgcolor">
+              <div class="control-group">
+                <label class="control-label" for="prefix">Prefix</label>
+                <div class="controls">
+                  <input type="text" id="prefix" name="prefix" placeholder="prefix">
+                </div>
+              </div>
+            </div><!--/span-->
+          </div><!--/row-->
+
+          <div class="row-fluid">
+            <div class="span6 bgcolor">
+              <div class="control-group">
+                <label class="control-label">Compression</label>
+                  <div class="controls">
+                    <input type="checkbox" name="compression" value="compression">
+                  </div>
+                </div>
+            </div><!--/span-->
+          </div><!--/row-->
+
+          <div class="row-fluid">
+            <div class="span6 bgcolor">
+              <div class="control-group">
+                <label class="control-label" for="maxfilesize">Max file size</label>
+                <div class="controls">
+                  <input type="text" id="maxfilesize" name="maxfilesize" placeholder="maxfilesize">
+                </div>
+              </div>
+            </div><!--/span-->
+          </div><!--/row-->
+
+          <div class="row-fluid">
+            <div class="span6 bgcolor">
+              <div class="control-group">
+                <label class="control-label">Deduplication</label>
+                  <div class="controls">
+                    <input type="checkbox" name="deduplication" value="deduplication">
+                  </div>
+                </div>
+            </div><!--/span-->
+          </div><!--/row-->
+
+          <div class="row-fluid">
+            <div class="span6 bgcolor">
+              <div class="control-group">
+                <label class="control-label" for="Is part of">Is part of</label>
+                <div class="controls">
+                  <input type="text" id="ispartof" name="ispartof" placeholder="ispartof">
+                </div>
+              </div>
+            </div><!--/span-->
+          </div><!--/row-->
+
+          <div class="row-fluid">
+            <div class="span6 bgcolor">
+              <div class="control-group">
+                <label class="control-label" for="description">Description</label>
+                <div class="controls">
+                  <input type="password" id="description" name="description" placeholder="description">
+                </div>
+              </div>
+            </div><!--/span-->
+          </div><!--/row-->
+
+          <div class="row-fluid">
+            <div class="span6 bgcolor">
+              <div class="control-group">
+                <label class="control-label" for="operator">Operator</label>
+                <div class="controls">
+                  <input type="text" id="operator" name="operator" placeholder="operator">
+                </div>
+              </div>
+            </div><!--/span-->
+          </div><!--/row-->
+
+          <div class="row-fluid">
+            <div class="span6 bgcolor">
+              <div class="control-group">
+                <label class="control-label" for="httpheader">Http header</label>
+                <div class="controls">
+                  <input type="text" id="httpheader" name="httpheader" placeholder="httpheader">
+                </div>
+              </div>
+            </div><!--/span-->
+          </div><!--/row-->
+
+          <div class="row-fluid">
+            <div class="span6 bgcolor">
+              <div class="control-group">
+                <div class="controls">
+                  <button type="submit" name="submit" value="add" class="btn btn-primary">Opret</button>
+                  <button type="reset" class="btn">Nulstil</button>
+                </div>
+              </div>
+            </div><!--/span-->
+          </div><!--/row-->
+
+        </div><!--/span-->
+      </div><!--/row-->
+      </form>
+    </div><!--/.fluid-container-->
+</place>
